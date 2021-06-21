@@ -1,6 +1,18 @@
 <resources>
     <string name="app_name">WeatherApp</string>
     <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="et_search_hint">Search...</string>
+
+
+    <string name="Snow">sn</string>
+    <string name="Sleet">sl</string>
+    <string name="Hail">h</string>
+    <string name="Thunderstorm">t</string>
+    <string name="HeavyRain">hr</string>
+    <string name="LightRain">lr</string>
+    <string name="Showers">s</string>
+    <string name="HeavyCloud">hc</string>
+    <string name="LightCloud">lc</string>
+    <string name="Clear">c</string>
+    <string name="Unknown">u</string>
 </resources>

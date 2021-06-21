@@ -1,21 +1,23 @@
-package levkaantonov.com.study.weatherapp.data
+package levkaantonov.com.study.weatherapp.di
 
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import levkaantonov.com.study.weatherapp.data.repositories.MetaWeatherRepository
+import levkaantonov.com.study.weatherapp.data.api.MetaWeatherApi
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
-object DataModule {
+object DiModule {
 
     @Provides
     @Singleton
-    fun provideLocationRepository(api: MetaWeatherApi): LocationRepository {
-        return LocationRepository(api)
+    fun provideLocationRepository(api: MetaWeatherApi): MetaWeatherRepository {
+        return MetaWeatherRepository(api)
     }
 
     @Provides

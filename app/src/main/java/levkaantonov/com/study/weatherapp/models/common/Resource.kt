@@ -1,4 +1,4 @@
-package levkaantonov.com.study.weatherapp.util
+package levkaantonov.com.study.weatherapp.models.common
 
 sealed class Resource<T>(
     val data: T? = null,

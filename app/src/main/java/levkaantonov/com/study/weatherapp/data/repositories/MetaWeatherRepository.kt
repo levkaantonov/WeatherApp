@@ -1,40 +1,42 @@
-package levkaantonov.com.study.weatherapp.data
+package levkaantonov.com.study.weatherapp.data.repositories
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import levkaantonov.com.study.weatherapp.models.Location
-import levkaantonov.com.study.weatherapp.util.Resource
+import levkaantonov.com.study.weatherapp.data.api.MetaWeatherApi
+import levkaantonov.com.study.weatherapp.models.network.Location
+import levkaantonov.com.study.weatherapp.models.network.Weather
 import retrofit2.Response
 import javax.inject.Inject
 
-class LocationRepository @Inject constructor(
+class MetaWeatherRepository @Inject constructor(
     private val api: MetaWeatherApi
 ) {
-    private val locations = MutableLiveData<Resource<List<Location>>>()
-
-    suspend fun searchLocations(title: String): LiveData<Resource<List<Location>>> {
-        locations.value = Resource.Loading()
-        try {
+    suspend fun searchLocations(title: String): List<Location>? {
+        return try {
             val response = api.searchLocations(title)
-            locations.value = getResourceFromResponse(response)
+            getDataFromResponse(response)
         } catch (e: Exception) {
-            val msg = e.localizedMessage ?: "unknown error"
-            locations.value = Resource.Error(msg)
+            throw e
         }
-        return locations
     }
 
-    private fun <T> getResourceFromResponse(response: Response<T>): Resource<T> {
+    suspend fun getWeather(woeId: Int): Weather? {
+        return try {
+            val response = api.getWeather(woeId)
+            getDataFromResponse(response)
+        } catch (e: Exception) {
+            throw e
+        }
+    }
+
+    private fun <T> getDataFromResponse(response: Response<T>): T? {
         return if (response.isSuccessful) {
             val body = response.body()
             if (body == null || response.code() == 204) {
-                Resource.Error("unknown error")
+                null
             } else {
-                Resource.Success(body)
+                body
             }
         } else {
-            val error = response.errorBody()?.string() ?: response.message()
-            Resource.Error(error)
+            null
         }
     }
 

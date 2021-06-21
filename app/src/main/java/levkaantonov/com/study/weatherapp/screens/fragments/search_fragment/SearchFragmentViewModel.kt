@@ -1,62 +1,40 @@
 package levkaantonov.com.study.weatherapp.screens.fragments.search_fragment
 
-import android.util.Log
 import androidx.lifecycle.*
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.*
-import levkaantonov.com.study.weatherapp.data.LocationRepository
-import levkaantonov.com.study.weatherapp.models.Location
-import levkaantonov.com.study.weatherapp.util.Resource
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import levkaantonov.com.study.weatherapp.data.MetaWeatherDataSource
+import levkaantonov.com.study.weatherapp.models.domain.LocationDomain
+import levkaantonov.com.study.weatherapp.models.common.Resource
 import javax.inject.Inject
 
 @HiltViewModel
 class SearchFragmentViewModel @Inject constructor(
-    private val repository: LocationRepository
+    private val dataSource: MetaWeatherDataSource
 ) : ViewModel() {
     private var searchJob: Job = Job()
 
     private val searchQuery = MutableLiveData<String>()
-
-    val locations: LiveData<Resource<List<Location>>> = searchQuery.switchMap { query ->
-        liveData {
-            if (query.isNullOrEmpty()) {
-//            liveData { Resource.Error<Resource<List<Location>>>("unknown country") }
-                emit(Resource.Error<Resource<List<Location>>>("empty query") as Resource<List<Location>>)
+    private val _locations = MutableLiveData<Resource<List<LocationDomain>>>()
+    val locations: LiveData<Resource<List<LocationDomain>>> = searchQuery.switchMap { query ->
+        _locations.apply {
+            value = Resource.Loading()
+            if (query.isBlank()) {
+                value = Resource.Error("empty query")
             } else {
                 if (searchJob.isActive) {
                     searchJob.cancel()
                 }
-//            liveData {
-//                searchJob = viewModelScope.launch {
-//                    val response = repository.searchLocations(query)
-//                    Log.d(
-//                        "TAG",
-//                        "searchFragmentViewModel coroutine response.value?.data: ${response.value?.data}"
-//                    )
-//                    Log.d(
-//                        "TAG",
-//                        "searchFragmentViewModel coroutine response.value: ${response.value}"
-//                    )
-//                    Log.d("TAG", "searchFragmentViewModel coroutine response: ${response}")
-//                    emitSource(response)
-//                }
-//            }
-
                 searchJob = viewModelScope.launch {
-                    val response = repository.searchLocations(query)
-                    Log.d(
-                        "TAG",
-                        "searchFragmentViewModel coroutine ${response.value} ${response.value?.data}"
-                    )
-                    emitSource(response)
+                    value = dataSource.searchLocations(query)
                 }
             }
         }
     }
 
-
     fun searchLocations(query: String) {
-        searchQuery.postValue(query)
+        searchQuery.value = query
     }
 
     override fun onCleared() {

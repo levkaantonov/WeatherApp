@@ -8,6 +8,18 @@
     <fragment
         android:id="@+id/searchFragment"
         android:name="levkaantonov.com.study.weatherapp.screens.fragments.search_fragment.SearchFragment"
-        android:label="fragment_search"
-        tools:layout="@layout/fragment_search" />
+        android:label="WeatherApp"
+        tools:layout="@layout/fragment_search" >
+        <action
+            android:id="@+id/action_searchFragment_to_detailsFragment"
+            app:destination="@id/detailsFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/detailsFragment"
+        android:name="levkaantonov.com.study.weatherapp.screens.fragments.details_fragment.DetailsFragment"
+        tools:layout="@layout/fragment_details">
+        <argument
+            android:name="woeid"
+            app:argType="integer" />
+    </fragment>
 </navigation>

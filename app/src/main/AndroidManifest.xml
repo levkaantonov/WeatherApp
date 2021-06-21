@@ -10,7 +10,7 @@
         android:label="@string/app_name"
         android:roundIcon="@drawable/ic_heavy_cloud"
         android:supportsRtl="true"
-        android:name=".di.WeatherApp">
+        android:name=".App">
         <activity android:name=".screens.activities.MainActivity"
             android:windowSoftInputMode="stateHidden|adjustResize"
         android:theme="@style/WeatherAppTheme.Launcher">

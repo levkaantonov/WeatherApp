@@ -5,16 +5,16 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
-import levkaantonov.com.study.weatherapp.databinding.ItemWheatherBinding
-import levkaantonov.com.study.weatherapp.models.Location
+import levkaantonov.com.study.weatherapp.databinding.ItemWeatherBinding
+import levkaantonov.com.study.weatherapp.models.domain.LocationDomain
 
 class SearchAdapter(clickListener: LocationItemClickListener) :
-    ListAdapter<Location, ViewHolder>(LocationDiffUtil()) {
+    ListAdapter<LocationDomain, ViewHolder>(LocationDiffUtil()) {
     private val listener = clickListener
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         return LocationViewHolder(
-            ItemWheatherBinding.inflate(
+            ItemWeatherBinding.inflate(
                 LayoutInflater.from(parent.context),
                 parent,
                 false
@@ -28,31 +28,36 @@ class SearchAdapter(clickListener: LocationItemClickListener) :
     }
 
     inner class LocationViewHolder(
-        private val binding: ItemWheatherBinding
+        private val binding: ItemWeatherBinding
     ) : ViewHolder(binding.root) {
         init {
             binding.root.setOnClickListener {
-                listener.click(adapterPosition)
+                if (adapterPosition == -1) {
+                    return@setOnClickListener
+                }
+                val item = getItem(adapterPosition)
+
+                listener.click(item.woeId)
             }
         }
 
-        fun bind(item: Location) {
+        fun bind(item: LocationDomain) {
             binding.idTown.text = item.title
-            binding.idCountry.text = item.location_type
+            binding.idLattLong.text = item.latt_long
         }
     }
 }
 
 interface LocationItemClickListener {
-    fun click(position: Int)
+    fun click(woeId: Int)
 }
 
-private class LocationDiffUtil : DiffUtil.ItemCallback<Location>() {
-    override fun areItemsTheSame(oldItem: Location, newItem: Location): Boolean {
+private class LocationDiffUtil : DiffUtil.ItemCallback<LocationDomain>() {
+    override fun areItemsTheSame(oldItem: LocationDomain, newItem: LocationDomain): Boolean {
         return oldItem.title == newItem.title && oldItem.location_type == newItem.location_type
     }
 
-    override fun areContentsTheSame(oldItem: Location, newItem: Location): Boolean {
+    override fun areContentsTheSame(oldItem: LocationDomain, newItem: LocationDomain): Boolean {
         return oldItem == newItem
     }
 }
