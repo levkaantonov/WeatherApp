@@ -3,6 +3,7 @@
     <!-- TODO: Remove or change this placeholder text -->
     <string name="et_search_hint">Search...</string>
 
+    <string name="degree">°</string>
 
     <string name="Snow">sn</string>
     <string name="Sleet">sl</string>
