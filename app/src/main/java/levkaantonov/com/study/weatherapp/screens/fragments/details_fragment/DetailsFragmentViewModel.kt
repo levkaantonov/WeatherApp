@@ -5,23 +5,35 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import levkaantonov.com.study.weatherapp.data.MetaWeatherDataSource
-import levkaantonov.com.study.weatherapp.models.domain.WeatherDomain
-import levkaantonov.com.study.weatherapp.models.common.Resource
+import levkaantonov.com.study.weatherapp.data.ApiDataSource
+import levkaantonov.com.study.weatherapp.models.ui.WeatherUI
+import levkaantonov.com.study.weatherapp.models.common.LoadState
 import javax.inject.Inject
 
 @HiltViewModel
 class DetailsFragmentViewModel @Inject constructor(
-    private val dataSource: MetaWeatherDataSource
+    private val dataSource: ApiDataSource
 ) : ViewModel() {
-    private val _weather = MutableLiveData<Resource<WeatherDomain>>()
-    val weatherLiveData: LiveData<Resource<WeatherDomain>> = _weather
 
-    fun getWeather(woeId: Int) =
-        viewModelScope.launch {
-            _weather.apply {
-                value = dataSource.getWeather(woeId)
+    private val _loadState = MutableLiveData<LoadState>()
+    val loadState: LiveData<LoadState> = _loadState
+
+    private val _weather = MutableLiveData<WeatherUI?>()
+    val weather: LiveData<WeatherUI?> = _weather
+
+    fun getWeather(woeId: Int) {
+        _loadState.value = LoadState.Loading
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                _weather.postValue(dataSource.getWeather(woeId))
+                _loadState.postValue(LoadState.Success)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _loadState.postValue(LoadState.Error(e.localizedMessage))
+                _weather.postValue(null)
             }
         }
+    }
 }

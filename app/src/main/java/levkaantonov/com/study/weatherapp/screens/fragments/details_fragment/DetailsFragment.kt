@@ -11,7 +11,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import dagger.hilt.android.AndroidEntryPoint
 import levkaantonov.com.study.weatherapp.databinding.FragmentDetailsBinding
-import levkaantonov.com.study.weatherapp.models.common.Resource
+import levkaantonov.com.study.weatherapp.models.common.LoadState
 
 @AndroidEntryPoint
 class DetailsFragment : Fragment() {
@@ -30,31 +30,43 @@ class DetailsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.apply {
-            val adapter = DetailsAdapter()
-            recyclerView.adapter = adapter
-            subscribeUi(adapter)
-        }
+        initialize()
+    }
+
+    /*
+        Инициализация.
+     */
+    private fun initialize() {
+        val adapter = DetailsAdapter()
+        binding.recyclerView.adapter = adapter
+        observeWeather(adapter)
+        observeLoadState()
         viewModel.getWeather(arguments.woeid)
     }
 
-    private fun subscribeUi(adapter: DetailsAdapter) {
-        viewModel.weatherLiveData.observe(viewLifecycleOwner) { resource ->
-
-            when (resource) {
-                is Resource.Success -> {
+    /*
+        Подписка на состояние загрузки.
+     */
+    private fun observeLoadState() {
+        viewModel.loadState.observe(viewLifecycleOwner) { state ->
+            when (state) {
+                is LoadState.Loading -> binding.progress.isVisible = true
+                is LoadState.Success -> binding.progress.isVisible = false
+                is LoadState.Error -> {
                     binding.progress.isVisible = false
-                    val consolidatedWeather = resource.data?.consolidated_weather
-                    adapter.submitList(consolidatedWeather)
-                }
-                is Resource.Error -> {
-                    binding.progress.isVisible = false
-                    Toast.makeText(requireContext(), resource.msg, Toast.LENGTH_SHORT).show()
-                }
-                is Resource.Loading -> {
-                    binding.progress.isVisible = true
+                    Toast.makeText(requireContext(), state.msg, Toast.LENGTH_SHORT).show()
                 }
             }
+        }
+    }
+
+    /*
+        Подписка на результат поиска погоды.
+     */
+    private fun observeWeather(adapter: DetailsAdapter) {
+        viewModel.weather.observe(viewLifecycleOwner) { weather ->
+            val consolidatedWeather = weather?.consolidated_weather ?: return@observe
+            adapter.submitList(consolidatedWeather)
         }
     }
 }

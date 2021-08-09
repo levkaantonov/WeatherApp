@@ -29,12 +29,7 @@ class MetaWeatherRepository @Inject constructor(
 
     private fun <T> getDataFromResponse(response: Response<T>): T? {
         return if (response.isSuccessful) {
-            val body = response.body()
-            if (body == null || response.code() == 204) {
-                null
-            } else {
-                body
-            }
+            response.body()
         } else {
             null
         }

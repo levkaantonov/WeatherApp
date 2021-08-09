@@ -4,4 +4,8 @@
     <dimen name="app_padding">8dp</dimen>
     <dimen name="card_elevation">12dp</dimen>
     <dimen name="card_corner_radius">8dp</dimen>
+    <dimen name="app_small_size_text">15sp</dimen>
+    <dimen name="app_big_size_text">20sp</dimen>
+    <dimen name="iv_favorite_width">40dp</dimen>
+    <dimen name="iv_favorite_height">40dp</dimen>
 </resources>

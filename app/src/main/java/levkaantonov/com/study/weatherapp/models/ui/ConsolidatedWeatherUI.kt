@@ -1,6 +1,6 @@
-package levkaantonov.com.study.weatherapp.models.domain
+package levkaantonov.com.study.weatherapp.models.ui
 
-data class ConsolidatedWeatherDomain(
+data class ConsolidatedWeatherUI(
     val applicable_date: String,
     val id: Long,
     val the_temp: String,
