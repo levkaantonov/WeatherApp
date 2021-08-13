@@ -16,4 +16,7 @@
     <string name="LightCloud">lc</string>
     <string name="Clear">c</string>
     <string name="Unknown">u</string>
+    <string name="enable_gps_service">Enable GPS service</string>
+    <string name="Ok">Ok</string>
+    <string name="Cancel">Cancel</string>
 </resources>

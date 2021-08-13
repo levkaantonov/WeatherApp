@@ -9,6 +9,11 @@
         app:showAsAction="always|collapseActionView" />
 
     <item
+        android:id="@+id/action_get_gps_location"
+        android:icon="@drawable/ic_gps"
+        android:title="Location"
+        app:showAsAction="always|collapseActionView" />
+    <item
         android:id="@+id/action_favorites"
         android:icon="@drawable/ic_favorites"
         android:title="Favorites"
