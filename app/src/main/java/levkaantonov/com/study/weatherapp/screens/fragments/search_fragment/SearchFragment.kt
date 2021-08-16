@@ -11,7 +11,6 @@ import android.provider.Settings
 import android.view.*
 import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.ActivityResultRegistry
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.widget.SearchView
@@ -46,8 +45,10 @@ class SearchFragment : Fragment() {
     private var _bottomSheetBehaviorFavorites: BottomSheetBehavior<LinearLayout>? = null
     private val bottomSheetBehaviorFavorites get() = checkNotNull(_bottomSheetBehaviorFavorites)
     private var permissionRequest: PermissionRequestDialog? = null
-    private var _searchItem: MenuItem? = null
-    private val menuItemSearch get() = checkNotNull(_searchItem)
+    private var _searchMenuItem: MenuItem? = null
+    private val menuItemSearch get() = checkNotNull(_searchMenuItem)
+    private var _gpsMenuItem: MenuItem? = null
+    private val menuItemGps get() = checkNotNull(_gpsMenuItem)
 
     private val fusedLocationProviderClient by lazy {
         LocationServices.getFusedLocationProviderClient(requireContext())
@@ -188,7 +189,8 @@ class SearchFragment : Fragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_fragment_search, menu)
-        _searchItem = menu.findItem(R.id.action_search)
+        _searchMenuItem = menu.findItem(R.id.action_search)
+        _gpsMenuItem = menu.findItem(R.id.action_get_gps_location)
         prepareSearchView(menuItemSearch)
     }
 
@@ -298,6 +300,7 @@ class SearchFragment : Fragment() {
 
     private fun startLocationUpdates() {
         try {
+            menuItemGps.setIcon(R.drawable.ic_gps_fixed)
             fusedLocationProviderClient.requestLocationUpdates(
                 locationRequest,
                 locationCallback,
@@ -309,6 +312,7 @@ class SearchFragment : Fragment() {
     }
 
     private fun stopLocationUpdates() {
+        menuItemGps.setIcon(R.drawable.ic_gps)
         fusedLocationProviderClient.removeLocationUpdates(locationCallback)
     }
 
@@ -360,4 +364,8 @@ class PermissionRequestDialog(
     private companion object {
         private const val REG_KEY = "PermissionRequestDialog"
     }
+}
+
+class EnableLocationDialog {
+
 }
