@@ -1,81 +1,60 @@
 package levkaantonov.com.study.weatherapp.screens.fragments.search_fragment
 
-import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.location.Address
-import android.location.Geocoder
 import android.os.Bundle
-import android.os.Looper
 import android.provider.Settings
 import android.view.*
 import android.widget.LinearLayout
 import android.widget.Toast
-import androidx.activity.result.ActivityResultRegistry
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SearchView
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
-import androidx.lifecycle.LifecycleOwner
 import androidx.navigation.fragment.findNavController
-import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import dagger.hilt.android.AndroidEntryPoint
 import levkaantonov.com.study.weatherapp.R
 import levkaantonov.com.study.weatherapp.databinding.FragmentSearchBinding
+import levkaantonov.com.study.weatherapp.models.common.GpsEvent
 import levkaantonov.com.study.weatherapp.models.common.LoadState
+import levkaantonov.com.study.weatherapp.models.ui.Address
+import levkaantonov.com.study.weatherapp.screens.common.PermissionRequestDialog
 import levkaantonov.com.study.weatherapp.util.PERMISSION_COARSE_LOCATION
 import levkaantonov.com.study.weatherapp.util.PERMISSION_FINE_LOCATION
-import levkaantonov.com.study.weatherapp.util.PERMISSION_REQUEST
 import java.util.*
 
 @AndroidEntryPoint
 class SearchFragment : Fragment() {
+
+    //region fields
     private var _binding: FragmentSearchBinding? = null
     private val binding get() = _binding!!
+
     private val viewModel: SearchFragmentViewModel by viewModels()
+    private val gpsViewModel: GpsViewModel by viewModels()
 
     private var searchView: SearchView? = null
+
     private var _searchAdapter: SearchAdapter? = null
     private val searchAdapter get() = checkNotNull(_searchAdapter)
+
     private var _favoritesAdapter: SearchAdapter? = null
     private val favoritesAdapter get() = checkNotNull(_favoritesAdapter)
+
     private var _bottomSheetBehaviorFavorites: BottomSheetBehavior<LinearLayout>? = null
     private val bottomSheetBehaviorFavorites get() = checkNotNull(_bottomSheetBehaviorFavorites)
+
     private var permissionRequest: PermissionRequestDialog? = null
+
     private var _searchMenuItem: MenuItem? = null
     private val menuItemSearch get() = checkNotNull(_searchMenuItem)
+
     private var _gpsMenuItem: MenuItem? = null
     private val menuItemGps get() = checkNotNull(_gpsMenuItem)
-
-    private val fusedLocationProviderClient by lazy {
-        LocationServices.getFusedLocationProviderClient(requireContext())
-    }
-    private val locationCallback by lazy {
-        object : LocationCallback() {
-            override fun onLocationResult(locationResult: LocationResult) {
-                locationResult.locations.let {
-                    val location = it.firstOrNull()
-                    location ?: return@let
-                    val geocoder = Geocoder(requireContext(), Locale.ENGLISH)
-                    val addresses =
-                        geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                    setLocationResult(addresses)
-                }
-                stopLocationUpdates()
-            }
-        }
-    }
-
-    private val locationRequest by lazy {
-        LocationRequest.create().apply {
-            interval = 10000
-            fastestInterval = 5000
-            priority = LocationRequest.PRIORITY_LOW_POWER
-        }
-    }
+    //endregion
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -87,11 +66,7 @@ class SearchFragment : Fragment() {
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
-        permissionRequest = PermissionRequestDialog(
-            requireActivity().activityResultRegistry,
-            this,
-            ::requestedPermissionsCallback
-        )
+        permissionRequest = buildPermissionRequest()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -104,17 +79,58 @@ class SearchFragment : Fragment() {
         Инициализация.
      */
     private fun initialize() {
-        _searchAdapter = SearchAdapter(
-            object : LocationItemClickListener {
-                override fun onClickItem(id: Int) =
-                    actionOnItemClick(id)
+        setSearchAdapter()
+        setFavoritesAdapter()
+        observeStateOfLoading()
+        setBottomSheetFavorites()
+        observeGpsValues()
+    }
 
-                override fun onClickFavoritesIcon(id: Int) {
-                    viewModel.clickOnFavIconInSearchResults(searchAdapter.currentList[id])
+    private fun observeGpsValues() {
+        gpsViewModel.gpsData.observe(viewLifecycleOwner) { event ->
+            when (event) {
+                is GpsEvent.CurrentLocation -> {
+                    setGpsResult(event.address)
+                    setIconGpsIsTurnedOff()
                 }
-            })
-        observeSearchResults(searchAdapter)
+                is GpsEvent.State -> {
+                    if (!event.isEnabled) {
+                        showTurnOnGpsDialog()
+                    }
+                }
+                is GpsEvent.Fault -> {
+                    setIconGpsIsTurnedOff()
+                    Toast.makeText(requireContext(), event.msg, Toast.LENGTH_SHORT).show()
+                }
+                else -> {
+                    setIconGpsIsTurnedOff()
+                }
+            }
+        }
+    }
 
+    private fun showTurnOnGpsDialog() {
+        AlertDialog
+            .Builder(requireContext())
+            .setTitle(getString(R.string.enable_gps_service))
+            .setCancelable(false)
+            .setPositiveButton(getString(R.string.Ok)) { _, _ ->
+                val startSettingActivityIntent =
+                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
+                startActivity(startSettingActivityIntent)
+            }.setNegativeButton(getString(R.string.Cancel), null)
+            .show()
+    }
+
+    private fun setBottomSheetFavorites() {
+        binding.apply {
+            favoritesBottomSheet.recyclerViewFavorites.adapter = favoritesAdapter
+            recyclerView.adapter = searchAdapter
+            _bottomSheetBehaviorFavorites = BottomSheetBehavior.from(favoritesBottomSheet.root)
+        }
+    }
+
+    private fun setFavoritesAdapter() {
         _favoritesAdapter = SearchAdapter(
             object : LocationItemClickListener {
                 override fun onClickItem(id: Int) =
@@ -125,14 +141,19 @@ class SearchFragment : Fragment() {
                 }
             })
         observeFavoritesLocations(favoritesAdapter)
+    }
 
-        observeStateOfLoading(viewModel)
+    private fun setSearchAdapter() {
+        _searchAdapter = SearchAdapter(
+            object : LocationItemClickListener {
+                override fun onClickItem(id: Int) =
+                    actionOnItemClick(id)
 
-        binding.apply {
-            favoritesBottomSheet.recyclerViewFavorites.adapter = favoritesAdapter
-            recyclerView.adapter = searchAdapter
-            _bottomSheetBehaviorFavorites = BottomSheetBehavior.from(favoritesBottomSheet.root)
-        }
+                override fun onClickFavoritesIcon(id: Int) {
+                    viewModel.clickOnFavIconInSearchResults(searchAdapter.currentList[id])
+                }
+            })
+        observeSearchResults(searchAdapter)
     }
 
     /*
@@ -156,7 +177,7 @@ class SearchFragment : Fragment() {
     /*
         Подписка на состояние поиска.
      */
-    private fun observeStateOfLoading(viewModel: SearchFragmentViewModel) {
+    private fun observeStateOfLoading() {
         viewModel.loadState.observe(viewLifecycleOwner) { state ->
             when (state) {
                 is LoadState.Loading -> binding.progress.isVisible = true
@@ -241,86 +262,12 @@ class SearchFragment : Fragment() {
         )
     }
 
-    private fun checkGpsIsEnabled() {
-        var gpsIsEnabled = false
-        var networkIsEnabled = false
-
-        try {
-            val builder = LocationSettingsRequest.Builder()
-                .addLocationRequest(locationRequest)
-
-            val settingsClient = LocationServices.getSettingsClient(requireContext())
-
-            val task = settingsClient.checkLocationSettings(builder.build())
-            task.apply {
-                addOnSuccessListener { response ->
-                    response?.let {
-                        it.locationSettingsStates?.let { state ->
-                            gpsIsEnabled = state.isGpsPresent
-                            networkIsEnabled = state.isNetworkLocationPresent
-                        }
-                    }
-
-                    if (response == null || (!gpsIsEnabled && !networkIsEnabled)) {
-                        AlertDialog
-                            .Builder(requireContext())
-                            .setTitle(getString(R.string.enable_gps_service))
-                            .setCancelable(false)
-                            .setPositiveButton(getString(R.string.Ok)) { _, _ ->
-                                val startSettingActivityIntent =
-                                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-                                startActivity(startSettingActivityIntent)
-                            }.setNegativeButton(getString(R.string.Cancel), null)
-                            .show()
-                    } else {
-                        startLocationUpdates()
-                    }
-                }
-
-                addOnFailureListener { exception ->
-                    if (exception is ResolvableApiException) {
-                        try {
-                            with(exception) {
-                                startResolutionForResult(
-                                    requireActivity(),
-                                    PERMISSION_REQUEST
-                                )
-                            }
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-            }
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun startLocationUpdates() {
-        try {
-            menuItemGps.setIcon(R.drawable.ic_gps_fixed)
-            fusedLocationProviderClient.requestLocationUpdates(
-                locationRequest,
-                locationCallback,
-                Looper.getMainLooper()
-            )
-        } catch (e: SecurityException) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun stopLocationUpdates() {
-        menuItemGps.setIcon(R.drawable.ic_gps)
-        fusedLocationProviderClient.removeLocationUpdates(locationCallback)
-    }
-
-    private fun setLocationResult(addresses: List<Address>) {
-        searchView?.let {
-            menuItemSearch.expandActionView()
-            it.setQuery(addresses.firstOrNull()?.locality?.lowercase(), false)
-        }
+    private fun buildPermissionRequest(): PermissionRequestDialog {
+        return PermissionRequestDialog(
+            requireActivity().activityResultRegistry,
+            this,
+            ::requestedPermissionsCallback
+        )
     }
 
     private fun requestedPermissionsCallback(permissions: MutableMap<String, Boolean>) {
@@ -331,9 +278,34 @@ class SearchFragment : Fragment() {
             }
             countOfGrantedPermissions++
         }
-
         if (countOfGrantedPermissions == permissions.size) {
-            checkGpsIsEnabled()
+            getCurrentLocation()
+        } else {
+            Toast.makeText(
+                requireContext(),
+                getString(R.string.permissions_not_granted),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    private fun getCurrentLocation() {
+        setIconGpsIsTurnedOn()
+        gpsViewModel.getCurrentLocation()
+    }
+
+    private fun setIconGpsIsTurnedOn() {
+        menuItemGps.setIcon(R.drawable.ic_gps_fixed)
+    }
+
+    private fun setIconGpsIsTurnedOff() {
+        menuItemGps.setIcon(R.drawable.ic_gps)
+    }
+
+    private fun setGpsResult(addresses: Address) {
+        searchView?.let {
+            menuItemSearch.expandActionView()
+            it.setQuery(addresses.locality?.lowercase(), false)
         }
     }
 
@@ -342,30 +314,4 @@ class SearchFragment : Fragment() {
         _binding = null
         searchView?.setOnQueryTextListener(null)
     }
-}
-
-class PermissionRequestDialog(
-    activityResultRegistry: ActivityResultRegistry,
-    lifecycleOwner: LifecycleOwner,
-    callback: (permissions: MutableMap<String, Boolean>) -> Unit
-) {
-    private val permissionRequest = activityResultRegistry.register(
-        REG_KEY,
-        lifecycleOwner,
-        ActivityResultContracts.RequestMultiplePermissions(), callback
-    )
-
-    fun requestPermissions(
-        requestedPermissions: Array<String>
-    ) {
-        permissionRequest.launch(requestedPermissions)
-    }
-
-    private companion object {
-        private const val REG_KEY = "PermissionRequestDialog"
-    }
-}
-
-class EnableLocationDialog {
-
 }

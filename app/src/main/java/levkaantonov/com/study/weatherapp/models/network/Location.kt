@@ -1,6 +1,6 @@
 package levkaantonov.com.study.weatherapp.models.network
 
-import levkaantonov.com.study.weatherapp.models.ui.LocationUI
+import levkaantonov.com.study.weatherapp.models.ui.Location as UiLocation
 
 data class Location(
     val title: String,
@@ -10,11 +10,11 @@ data class Location(
     val distance: Int = 0
 )
 
-fun Location.toUIModel(): LocationUI =
-    LocationUI(
-        title = this.title,
-        location_type = this.location_type,
+fun Location.toUiModel(): UiLocation =
+    UiLocation(
+        title = title,
+        location_type = location_type,
         woeId = this.woeid,
-        latt_long = this.latt_long,
-        distance = this.distance
+        latt_long = latt_long,
+        distance = distance
     )

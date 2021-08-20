@@ -3,10 +3,10 @@ package levkaantonov.com.study.weatherapp.models.db
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import levkaantonov.com.study.weatherapp.models.ui.LocationUI
+import levkaantonov.com.study.weatherapp.models.ui.Location as UiLocation
 
 @Entity(tableName = "locations")
-data class LocationDb(
+data class Location(
     @PrimaryKey val woeId: Int,
     @ColumnInfo(name = "title") val title: String,
     @ColumnInfo(name = "location_type") val location_type: String,
@@ -15,8 +15,8 @@ data class LocationDb(
     @ColumnInfo(name = "is_favorite") val is_favorite: Boolean = true
 )
 
-fun LocationDb.toUIModel():LocationUI =
-    LocationUI(
+fun Location.toUiModel():UiLocation =
+    UiLocation(
         title = this.title,
         location_type = this.location_type,
         woeId = this.woeId,

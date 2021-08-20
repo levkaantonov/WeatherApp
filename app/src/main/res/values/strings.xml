@@ -19,4 +19,5 @@
     <string name="enable_gps_service">Enable GPS service</string>
     <string name="Ok">Ok</string>
     <string name="Cancel">Cancel</string>
+    <string name="permissions_not_granted">permissions not granted</string>
 </resources>

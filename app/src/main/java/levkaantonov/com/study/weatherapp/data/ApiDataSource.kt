@@ -1,9 +1,9 @@
 package levkaantonov.com.study.weatherapp.data
 
 import levkaantonov.com.study.weatherapp.data.repositories.MetaWeatherRepository
-import levkaantonov.com.study.weatherapp.models.network.toUIModel
-import levkaantonov.com.study.weatherapp.models.ui.LocationUI
-import levkaantonov.com.study.weatherapp.models.ui.WeatherUI
+import levkaantonov.com.study.weatherapp.models.network.toUiModel
+import levkaantonov.com.study.weatherapp.models.ui.Location
+import levkaantonov.com.study.weatherapp.models.ui.Weather
 import javax.inject.Inject
 
 class ApiDataSource @Inject constructor(
@@ -18,10 +18,10 @@ class ApiDataSource @Inject constructor(
 //            Resource.Error(msg)
 //        }
 //    }
-    suspend fun searchLocations(title: String): List<LocationUI> {
+    suspend fun searchLocations(title: String): List<Location> {
         return try {
             val data = repository.searchLocations(title)
-            data?.map { it.toUIModel() }.orEmpty()
+            data?.map { it.toUiModel() }.orEmpty()
         } catch (e: Exception) {
             throw e
         }
@@ -36,10 +36,10 @@ class ApiDataSource @Inject constructor(
 //            LoadState.Error(msg)
 //        }
 //    }
-    suspend fun getWeather(woeId: Int): WeatherUI? {
+    suspend fun getWeather(woeId: Int): Weather? {
         return try {
             val data = repository.getWeather(woeId)
-            data?.toUIModel()
+            data?.toUiModel()
         } catch (e: Exception) {
             throw e
         }

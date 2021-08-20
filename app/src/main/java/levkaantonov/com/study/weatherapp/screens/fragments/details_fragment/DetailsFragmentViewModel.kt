@@ -8,7 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import levkaantonov.com.study.weatherapp.data.ApiDataSource
-import levkaantonov.com.study.weatherapp.models.ui.WeatherUI
+import levkaantonov.com.study.weatherapp.models.ui.Weather
 import levkaantonov.com.study.weatherapp.models.common.LoadState
 import javax.inject.Inject
 
@@ -20,8 +20,8 @@ class DetailsFragmentViewModel @Inject constructor(
     private val _loadState = MutableLiveData<LoadState>()
     val loadState: LiveData<LoadState> = _loadState
 
-    private val _weather = MutableLiveData<WeatherUI?>()
-    val weather: LiveData<WeatherUI?> = _weather
+    private val _weather = MutableLiveData<Weather?>()
+    val weather: LiveData<Weather?> = _weather
 
     fun getWeather(woeId: Int) {
         _loadState.value = LoadState.Loading

@@ -6,11 +6,11 @@ import androidx.recyclerview.widget.DiffUtil.ItemCallback
 import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import levkaantonov.com.study.weatherapp.databinding.ItemDetailsBinding
-import levkaantonov.com.study.weatherapp.models.ui.ConsolidatedWeatherUI
+import levkaantonov.com.study.weatherapp.models.ui.ConsolidatedWeather
 import levkaantonov.com.study.weatherapp.models.enums.WeatherType
 
 internal class DetailsAdapter :
-    ListAdapter<ConsolidatedWeatherUI, DetailsAdapter.ConsolidatedWeatherViewHolder>(
+    ListAdapter<ConsolidatedWeather, DetailsAdapter.ConsolidatedWeatherViewHolder>(
         ConsolidatedWeatherDiffUtil()
     ) {
     override fun onCreateViewHolder(
@@ -34,7 +34,7 @@ internal class DetailsAdapter :
     class ConsolidatedWeatherViewHolder(private val binding: ItemDetailsBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(item: ConsolidatedWeatherUI) {
+        fun bind(item: ConsolidatedWeather) {
             binding.tvTemperature.text = item.the_temp
             binding.tvDate.text = item.applicable_date
             val key = item.weather_state_abbr
@@ -43,16 +43,16 @@ internal class DetailsAdapter :
     }
 }
 
-private class ConsolidatedWeatherDiffUtil : ItemCallback<ConsolidatedWeatherUI>() {
+private class ConsolidatedWeatherDiffUtil : ItemCallback<ConsolidatedWeather>() {
     override fun areItemsTheSame(
-        oldItem: ConsolidatedWeatherUI,
-        newItem: ConsolidatedWeatherUI
+        oldItem: ConsolidatedWeather,
+        newItem: ConsolidatedWeather
     ): Boolean =
         newItem.id == oldItem.id
 
     override fun areContentsTheSame(
-        oldItem: ConsolidatedWeatherUI,
-        newItem: ConsolidatedWeatherUI
+        oldItem: ConsolidatedWeather,
+        newItem: ConsolidatedWeather
     ): Boolean =
         newItem == oldItem
 

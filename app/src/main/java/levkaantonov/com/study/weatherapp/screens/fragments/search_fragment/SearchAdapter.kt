@@ -7,10 +7,10 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import levkaantonov.com.study.weatherapp.R
 import levkaantonov.com.study.weatherapp.databinding.ItemLocationBinding
-import levkaantonov.com.study.weatherapp.models.ui.LocationUI
+import levkaantonov.com.study.weatherapp.models.ui.Location
 
 class SearchAdapter(clickListener: LocationItemClickListener) :
-    ListAdapter<LocationUI, ViewHolder>(LocationDiffUtil()) {
+    ListAdapter<Location, ViewHolder>(LocationDiffUtil()) {
     private val listener = clickListener
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -48,7 +48,7 @@ class SearchAdapter(clickListener: LocationItemClickListener) :
             }
         }
 
-        fun bind(item: LocationUI) {
+        fun bind(item: Location) {
             binding.tvTown.text = item.title
             binding.tvLattLong.text = item.latt_long
             val img =
@@ -64,12 +64,12 @@ interface LocationItemClickListener {
     fun onClickFavoritesIcon(id: Int)
 }
 
-private class LocationDiffUtil : DiffUtil.ItemCallback<LocationUI>() {
-    override fun areItemsTheSame(oldItem: LocationUI, newItem: LocationUI): Boolean {
+private class LocationDiffUtil : DiffUtil.ItemCallback<Location>() {
+    override fun areItemsTheSame(oldItem: Location, newItem: Location): Boolean {
         return oldItem.title == newItem.title && oldItem.location_type == newItem.location_type
     }
 
-    override fun areContentsTheSame(oldItem: LocationUI, newItem: LocationUI): Boolean {
+    override fun areContentsTheSame(oldItem: Location, newItem: Location): Boolean {
         return oldItem == newItem
     }
 }

@@ -1,8 +1,8 @@
 package levkaantonov.com.study.weatherapp.models.network
 
-import levkaantonov.com.study.weatherapp.models.ui.ConsolidatedWeatherUI
 import levkaantonov.com.study.weatherapp.util.DEGREE_SYMBOL
 import levkaantonov.com.study.weatherapp.util.toDate
+import levkaantonov.com.study.weatherapp.models.ui.ConsolidatedWeather as UiConsolidatedWeather
 
 data class ConsolidatedWeather(
     val applicable_date: String,
@@ -11,11 +11,11 @@ data class ConsolidatedWeather(
     val weather_state_abbr: String
 )
 
-fun ConsolidatedWeather.toUIModel(): ConsolidatedWeatherUI =
-    ConsolidatedWeatherUI(
-        applicable_date = this.applicable_date.toDate(),
-        id = this.id,
-        the_temp = String.format("%.1f%s", this.the_temp, DEGREE_SYMBOL)
+fun ConsolidatedWeather.toUiModel(): UiConsolidatedWeather =
+    UiConsolidatedWeather(
+        applicable_date = applicable_date.toDate(),
+        id = id,
+        the_temp = String.format("%.1f%s", the_temp, DEGREE_SYMBOL)
             .replace(',', '.'),
-        weather_state_abbr = this.weather_state_abbr
+        weather_state_abbr = weather_state_abbr
     )

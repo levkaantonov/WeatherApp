@@ -1,7 +1,7 @@
 package levkaantonov.com.study.weatherapp.models.ui
 
-data class WeatherUI(
-    val consolidated_weather: List<ConsolidatedWeatherUI>,
+data class Weather(
+    val consolidated_weather: List<ConsolidatedWeather>,
     val title: String,
     val woeId: Int
 )
