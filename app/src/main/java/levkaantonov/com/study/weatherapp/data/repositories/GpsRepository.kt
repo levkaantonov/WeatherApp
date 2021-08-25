@@ -1,99 +1,85 @@
 package levkaantonov.com.study.weatherapp.data.repositories
 
+import android.annotation.SuppressLint
+import android.location.Address
 import android.location.Geocoder
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationSettingsRequest
-import com.google.android.gms.location.SettingsClient
+import android.os.Looper
+import com.google.android.gms.location.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import levkaantonov.com.study.weatherapp.models.ui.Address as AddressUi
 
 class GpsRepository @Inject constructor(
     private val locationProviderClient: FusedLocationProviderClient,
     private val settingsClient: SettingsClient,
-    private val geocoder: Geocoder
+    private val geocoder: Geocoder,
+    private val locationRequest: LocationRequest
 ) {
+    @SuppressLint("MissingPermission")
     suspend fun getCurrentLocation(
-        listener: (AddressUi) -> Unit
+        listener: (Address?) -> Unit
     ) {
-        try {
-            locationProviderClient.lastLocation
-                .addOnSuccessListener { location ->
-                    location.let {
-                        val addresses = geocoder.getFromLocation(
-                            it.latitude,
-                            it.longitude,
-                            1
-                        )
-                        val address = addresses.firstOrNull()
-                        address ?: return@let
-                        listener(AddressUi(address.locality))
+        withContext(Dispatchers.IO) {
+            try {
+                val callback = object : LocationCallback() {
+                    override fun onLocationResult(locationResult: LocationResult) {
+                        try {
+                            if (locationResult.locations.isEmpty()) {
+                                listener(null)
+                                return
+                            }
+
+                            locationResult.locations.first().apply {
+                                val address =
+                                    geocoder.getFromLocation(latitude, longitude, 1)
+                                        .firstOrNull() ?: return
+
+                                if (address.locality.isNullOrEmpty()) {
+                                    listener(null)
+                                    return
+                                }
+                                listener(address)
+                            }
+                        } finally {
+                            locationProviderClient.removeLocationUpdates(this)
+                        }
                     }
                 }
-        } catch (e: SecurityException) {
-            throw e
+                locationProviderClient.requestLocationUpdates(
+                    locationRequest,
+                    callback,
+                    Looper.getMainLooper()
+                )
+            } catch (e: Exception) {
+                throw e
+            }
         }
     }
 
     suspend fun getStateOfLocation(
         listener: (Boolean) -> Unit
     ) {
-        var gpsIsEnabled = false
-        var networkIsEnabled = false
-        try {
-            settingsClient.checkLocationSettings(LocationSettingsRequest.Builder().build())
-                .addOnSuccessListener { response ->
-                    response.let {
-                        it.locationSettingsStates?.let { state ->
-                            gpsIsEnabled = state.isGpsPresent
-                            networkIsEnabled = state.isNetworkLocationPresent
+        withContext(Dispatchers.IO) {
+            try {
+                val builder = LocationSettingsRequest.Builder()
+                    .addLocationRequest(locationRequest)
+                settingsClient.checkLocationSettings(builder.build())
+                    .addOnSuccessListener { response ->
+                        var gpsIsEnabled = false
+                        var networkIsEnabled = false
+                        response?.let {
+                            it.locationSettingsStates?.let { state ->
+                                gpsIsEnabled = state.isGpsPresent
+                                networkIsEnabled = state.isNetworkLocationPresent
+                            }
                         }
+                        listener(gpsIsEnabled && networkIsEnabled)
+                    }.addOnFailureListener {
+                        listener(false)
                     }
-                    listener(gpsIsEnabled && networkIsEnabled)
-                }
-        } catch (e: Exception) {
-            throw e
+            } catch (e: Exception) {
+                throw e
+            }
         }
     }
-//    private fun checkGpsIsEnabled() {
-//        var gpsIsEnabled = false
-//        var networkIsEnabled = false
-//
-//        try {
-//            val builder = LocationSettingsRequest.Builder()
-//                .addLocationRequest(locationRequest)
-//
-//            val settingsClient = LocationServices.getSettingsClient(requireContext())
-//
-//            val task = settingsClient.checkLocationSettings(builder.build())
-//            task.apply {
-//                addOnSuccessListener { response ->
-//                    response?.let {
-//                        it.locationSettingsStates?.let { state ->
-//                            gpsIsEnabled = state.isGpsPresent
-//                            networkIsEnabled = state.isNetworkLocationPresent
-//                        }
-//                    }
-//
-//                    if (response == null || (!gpsIsEnabled && !networkIsEnabled)) {
-//                        AlertDialog
-//                            .Builder(requireContext())
-//                            .setTitle(getString(R.string.enable_gps_service))
-//                            .setCancelable(false)
-//                            .setPositiveButton(getString(R.string.Ok)) { _, _ ->
-//                                val startSettingActivityIntent =
-//                                    Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS)
-//                                startActivity(startSettingActivityIntent)
-//                            }.setNegativeButton(getString(R.string.Cancel), null)
-//                            .show()
-//                    } else {
-//                        startLocationUpdates()
-//                    }
-//                }
-//            }
-//
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//    }
-
 }

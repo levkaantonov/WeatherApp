@@ -16,6 +16,6 @@ interface MetaWeatherApi {
     suspend fun getWeather(@Path("woeid") woeid: Int): Response<Weather>
 
     companion object {
-        val BASE_URL = "https://www.metaweather.com/"
+        const val BASE_URL = "https://www.metaweather.com/"
     }
 }

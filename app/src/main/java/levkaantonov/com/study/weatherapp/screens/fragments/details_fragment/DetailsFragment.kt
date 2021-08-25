@@ -11,7 +11,7 @@ import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.navArgs
 import dagger.hilt.android.AndroidEntryPoint
 import levkaantonov.com.study.weatherapp.databinding.FragmentDetailsBinding
-import levkaantonov.com.study.weatherapp.models.common.LoadState
+import levkaantonov.com.study.weatherapp.models.common.Resource
 
 @AndroidEntryPoint
 class DetailsFragment : Fragment() {
@@ -40,24 +40,7 @@ class DetailsFragment : Fragment() {
         val adapter = DetailsAdapter()
         binding.recyclerView.adapter = adapter
         observeWeather(adapter)
-        observeLoadState()
         viewModel.getWeather(arguments.woeid)
-    }
-
-    /*
-        Подписка на состояние загрузки.
-     */
-    private fun observeLoadState() {
-        viewModel.loadState.observe(viewLifecycleOwner) { state ->
-            when (state) {
-                is LoadState.Loading -> binding.progress.isVisible = true
-                is LoadState.Success -> binding.progress.isVisible = false
-                is LoadState.Error -> {
-                    binding.progress.isVisible = false
-                    Toast.makeText(requireContext(), state.msg, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
     }
 
     /*
@@ -65,8 +48,18 @@ class DetailsFragment : Fragment() {
      */
     private fun observeWeather(adapter: DetailsAdapter) {
         viewModel.weather.observe(viewLifecycleOwner) { weather ->
-            val consolidatedWeather = weather?.consolidated_weather ?: return@observe
-            adapter.submitList(consolidatedWeather)
+            when (weather) {
+                is Resource.Loading -> binding.progress.isVisible = true
+                is Resource.Success -> {
+                    binding.progress.isVisible = false
+                    val consolidatedWeather = weather.data?.consolidated_weather ?: return@observe
+                    adapter.submitList(consolidatedWeather)
+                }
+                is Resource.Error -> {
+                    binding.progress.isVisible = false
+                    Toast.makeText(requireContext(), weather.msg, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
     }
 }

@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.components.ViewModelComponent
 import dagger.hilt.android.qualifiers.ApplicationContext
+import levkaantonov.com.study.weatherapp.data.GpsDataSource
 import levkaantonov.com.study.weatherapp.data.repositories.GpsRepository
 import java.util.*
 
@@ -21,12 +22,18 @@ object GpsModule {
     private const val FAST_INTERVAL = 5000L
 
     @Provides
+    fun provideGpsDataSource(gpsRepository: GpsRepository): GpsDataSource {
+        return GpsDataSource(gpsRepository)
+    }
+
+    @Provides
     fun provideGpsRepository(
         locationProviderClient: FusedLocationProviderClient,
         settingsClient: SettingsClient,
-        geocoder: Geocoder
+        geocoder: Geocoder,
+        locationRequest: LocationRequest
     ): GpsRepository {
-        return GpsRepository(locationProviderClient, settingsClient, geocoder)
+        return GpsRepository(locationProviderClient, settingsClient, geocoder, locationRequest)
     }
 
     @Provides
@@ -34,13 +41,6 @@ object GpsModule {
         @ApplicationContext context: Context
     ): FusedLocationProviderClient {
         return LocationServices.getFusedLocationProviderClient(context)
-    }
-
-    @Provides
-    fun provideLocationSettingsClient(
-        @ApplicationContext context: Context
-    ): SettingsClient {
-        return LocationServices.getSettingsClient(context)
     }
 
     @Provides

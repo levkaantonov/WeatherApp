@@ -9,13 +9,16 @@ data class ConsolidatedWeather(
     val id: Long,
     val the_temp: Double,
     val weather_state_abbr: String
-)
+) {
+    companion object {
+        fun ConsolidatedWeather.toUiModel(): UiConsolidatedWeather =
+            UiConsolidatedWeather(
+                applicable_date = applicable_date.toDate(),
+                id = id,
+                the_temp = String.format("%.1f%s", the_temp, DEGREE_SYMBOL)
+                    .replace(',', '.'),
+                weather_state_abbr = weather_state_abbr
+            )
+    }
+}
 
-fun ConsolidatedWeather.toUiModel(): UiConsolidatedWeather =
-    UiConsolidatedWeather(
-        applicable_date = applicable_date.toDate(),
-        id = id,
-        the_temp = String.format("%.1f%s", the_temp, DEGREE_SYMBOL)
-            .replace(',', '.'),
-        weather_state_abbr = weather_state_abbr
-    )

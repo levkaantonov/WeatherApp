@@ -9,15 +9,19 @@ data class Location(
     val latt_long: String,
     val distance: Int = 0,
     var is_favorite: Boolean = false
-)
+) {
+    companion object {
+        fun Location.toDbModel(): DbLocation =
+            DbLocation(
+                title = title,
+                location_type = location_type,
+                woeId = woeId,
+                latt_long = latt_long,
+                distance = distance,
+                is_favorite = is_favorite
+            )
+    }
+}
 
-fun Location.toDbModel(): DbLocation =
-    DbLocation(
-        title = title,
-        location_type = location_type,
-        woeId = woeId,
-        latt_long = latt_long,
-        distance = distance,
-        is_favorite = is_favorite
-    )
+
 

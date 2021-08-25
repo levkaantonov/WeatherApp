@@ -1,9 +1,9 @@
 package levkaantonov.com.study.weatherapp.data
 
 import levkaantonov.com.study.weatherapp.data.repositories.AppDbRepository
-import levkaantonov.com.study.weatherapp.models.db.toUiModel
+import levkaantonov.com.study.weatherapp.models.db.Location.Companion.toUiModel
 import levkaantonov.com.study.weatherapp.models.ui.Location
-import levkaantonov.com.study.weatherapp.models.ui.toDbModel
+import levkaantonov.com.study.weatherapp.models.ui.Location.Companion.toDbModel
 import javax.inject.Inject
 
 class DbDataSource @Inject constructor(

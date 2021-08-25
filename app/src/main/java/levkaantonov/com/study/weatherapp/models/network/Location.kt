@@ -8,13 +8,16 @@ data class Location(
     val woeid: Int,
     val latt_long: String,
     val distance: Int = 0
-)
+) {
+    companion object {
+        fun Location.toUiModel(): UiLocation =
+            UiLocation(
+                title = title,
+                location_type = location_type,
+                woeId = this.woeid,
+                latt_long = latt_long,
+                distance = distance
+            )
+    }
+}
 
-fun Location.toUiModel(): UiLocation =
-    UiLocation(
-        title = title,
-        location_type = location_type,
-        woeId = this.woeid,
-        latt_long = latt_long,
-        distance = distance
-    )

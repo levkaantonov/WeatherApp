@@ -4,18 +4,13 @@ import androidx.lifecycle.*
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import levkaantonov.com.study.weatherapp.data.ApiDataSource
 import levkaantonov.com.study.weatherapp.data.DbDataSource
-import levkaantonov.com.study.weatherapp.models.common.LoadState
+import levkaantonov.com.study.weatherapp.models.common.Resource
 import levkaantonov.com.study.weatherapp.models.ui.Location
-import levkaantonov.com.study.weatherapp.util.addPostValue
-import levkaantonov.com.study.weatherapp.util.removePostValue
-import levkaantonov.com.study.weatherapp.util.updatePostValue
+import levkaantonov.com.study.weatherapp.util.*
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,30 +26,31 @@ class SearchFragmentViewModel @Inject constructor(
     private val _savedQuery = state.getLiveData(CURRENT_QUERY, EMPTY_QUERY)
     val savedQuery: LiveData<String> = _savedQuery
 
-    private val _loadState = MutableLiveData<LoadState>()
-    val loadState: LiveData<LoadState> = _loadState
+    private val _favoritesBottomSheetState =
+        state.getLiveData(FAVORITES_BOTTOM_SHEET_STATE, FAVORITES_BOTTOM_SHEET_DEFAULT_STATE)
+    val favoritesBottomSheetState: LiveData<Int> = _favoritesBottomSheetState
 
-    private val _locations = MutableLiveData<List<Location>>()
-    val locations: LiveData<List<Location>> = _searchQuery.switchMap(::searchQueryChanged)
-
+    private val _locations = MutableResourceListLiveData<Location>()
+    val locations: ResourceListLiveData<Location> = _searchQuery.switchMap(::onSearchQueryChanged)
 
     private val _favoritesLocations = MutableLiveData<List<Location>>()
     val favoritesLocation: LiveData<List<Location>> = _favoritesLocations
 
-    private val _locationEventChannel = Channel<LocationEvent>()
-    val locationEvent: Flow<LocationEvent> = _locationEventChannel.receiveAsFlow()
-
     fun searchLocations(query: String) {
-        _searchQuery.value = query.toString()
+        _searchQuery.value = query
     }
 
     fun setSavedQuery(query: String) {
         _savedQuery.value = query
     }
 
-    fun clickOnFavIconInSearchResults(location: Location) {
-        try {
-            viewModelScope.launch(Dispatchers.IO) {
+    fun setFavoritesBottomSheetState(state: Int) {
+        _favoritesBottomSheetState.value = state
+    }
+
+    fun onClickByFavIconInSearchResults(location: Location) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
                 val newLocation = location.copy(is_favorite = !location.is_favorite)
                 if (!location.is_favorite) {
                     if (_favoritesLocations.value != null &&
@@ -67,43 +63,42 @@ class SearchFragmentViewModel @Inject constructor(
                     dbDatasource.delete(location.woeId)
                     _favoritesLocations.removePostValue(location)
                 }
-                _locations.updatePostValue(location, newLocation)
+                _locations.updatePostItemInList(location, newLocation)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
-    fun clickOnFavIconInFavoritesResults(location: Location) {
-        try {
-            viewModelScope.launch(Dispatchers.IO) {
+    fun onClickByFavIconInFavoritesResults(location: Location) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
                 dbDatasource.delete(location.woeId)
                 _favoritesLocations.removePostValue(location)
-                _locations.updatePostValue(
+                _locations.updatePostItemInList(
                     location,
                     location.copy(is_favorite = !location.is_favorite)
                 )
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
-    private fun searchQueryChanged(query: String): MutableLiveData<List<Location>> {
-        _loadState.value = LoadState.Loading
+    private fun onSearchQueryChanged(query: String): ResourceListLiveData<Location> {
+        _locations.value = Resource.Loading()
         if (searchJob.isActive) {
             searchJob.cancel()
         }
         searchJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 val searchingResults = apiDatasource.searchLocations(query)
-                val markedLocations = markLocationsAccordingToFavorites(searchingResults)
-                _locations.postValue(markedLocations)
-                _loadState.postValue(LoadState.Success)
+                val data = markLocationsAccordingToFavorites(searchingResults.data)
+                val result = Resource.Success(data)
+                _locations.postValue(result)
             } catch (e: Exception) {
                 e.printStackTrace()
-                _loadState.postValue(LoadState.Error(e.localizedMessage))
-                _locations.postValue(listOf())
+                _locations.postValue(Resource.Error(e.localizedMessage))
             }
         }
         return _locations
@@ -140,11 +135,7 @@ class SearchFragmentViewModel @Inject constructor(
     companion object {
         private const val EMPTY_QUERY = ""
         private const val CURRENT_QUERY = "current_query"
-    }
-
-    sealed class LocationEvent {
-        data class AfterDeleteLocation(val location: Location) : LocationEvent()
-        data class NotifyItemRemoved(val id: Int) : LocationEvent()
-        data class NotifyItemChanged(val id: Int) : LocationEvent()
+        private const val FAVORITES_BOTTOM_SHEET_STATE = "favorite_bottom_sheet_state"
+        private const val FAVORITES_BOTTOM_SHEET_DEFAULT_STATE = 4
     }
 }

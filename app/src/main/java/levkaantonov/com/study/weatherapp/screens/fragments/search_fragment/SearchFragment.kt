@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.view.*
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -19,8 +20,9 @@ import dagger.hilt.android.AndroidEntryPoint
 import levkaantonov.com.study.weatherapp.R
 import levkaantonov.com.study.weatherapp.databinding.FragmentSearchBinding
 import levkaantonov.com.study.weatherapp.models.common.GpsEvent
-import levkaantonov.com.study.weatherapp.models.common.LoadState
+import levkaantonov.com.study.weatherapp.models.common.Resource
 import levkaantonov.com.study.weatherapp.models.ui.Address
+import levkaantonov.com.study.weatherapp.screens.common.GpsViewModel
 import levkaantonov.com.study.weatherapp.screens.common.PermissionRequestDialog
 import levkaantonov.com.study.weatherapp.util.PERMISSION_COARSE_LOCATION
 import levkaantonov.com.study.weatherapp.util.PERMISSION_FINE_LOCATION
@@ -75,40 +77,138 @@ class SearchFragment : Fragment() {
         setHasOptionsMenu(true)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        viewModel.setFavoritesBottomSheetState(bottomSheetBehaviorFavorites.state)
+    }
+
     /*
         Инициализация.
      */
     private fun initialize() {
         setSearchAdapter()
         setFavoritesAdapter()
-        observeStateOfLoading()
         setBottomSheetFavorites()
         observeGpsValues()
+        observeFavoritesBottomSheetState()
     }
 
-    private fun observeGpsValues() {
-        gpsViewModel.gpsData.observe(viewLifecycleOwner) { event ->
-            when (event) {
-                is GpsEvent.CurrentLocation -> {
-                    setGpsResult(event.address)
-                    setIconGpsIsTurnedOff()
+    /*
+        Настройка списка поиска.
+     */
+    private fun setSearchAdapter() {
+        _searchAdapter = SearchAdapter(
+            object : LocationItemClickListener {
+                override fun onClickItem(id: Int) =
+                    actionOnItemClick(id)
+
+                override fun onClickFavoritesIcon(id: Int) {
+                    viewModel.onClickByFavIconInSearchResults(searchAdapter.currentList[id])
                 }
-                is GpsEvent.State -> {
-                    if (!event.isEnabled) {
-                        showTurnOnGpsDialog()
-                    }
+            })
+        observeSearchResults(searchAdapter)
+    }
+
+    /*
+        Подписка на результаты поиска.
+     */
+    private fun observeSearchResults(adapter: SearchAdapter) {
+        viewModel.locations.observe(viewLifecycleOwner) { locations ->
+            when (locations) {
+                is Resource.Loading -> binding.progress.isVisible = true
+                is Resource.Success -> {
+                    binding.progress.isVisible = false
+                    adapter.submitList(locations.data)
                 }
-                is GpsEvent.Fault -> {
-                    setIconGpsIsTurnedOff()
-                    Toast.makeText(requireContext(), event.msg, Toast.LENGTH_SHORT).show()
-                }
-                else -> {
-                    setIconGpsIsTurnedOff()
+                is Resource.Error -> {
+                    binding.progress.isVisible = false
+                    Toast.makeText(requireContext(), locations.msg, Toast.LENGTH_SHORT).show()
                 }
             }
         }
     }
 
+    /*
+        Настройка списка избранного.
+     */
+    private fun setFavoritesAdapter() {
+        _favoritesAdapter = SearchAdapter(
+            object : LocationItemClickListener {
+                override fun onClickItem(id: Int) =
+                    actionOnItemClick(id)
+
+                override fun onClickFavoritesIcon(id: Int) {
+                    viewModel.onClickByFavIconInFavoritesResults(favoritesAdapter.currentList[id])
+                }
+            })
+        observeFavoritesLocations(favoritesAdapter)
+    }
+
+    /*
+       Подписка на избранные локации.
+    */
+    private fun observeFavoritesLocations(adapter: SearchAdapter) {
+        viewModel.apply {
+            favoritesLocation.observe(viewLifecycleOwner) { favorites ->
+                adapter.submitList(favorites)
+            }
+        }
+    }
+
+
+    /*
+        Подписка на состояние bottomSheetFavorites.
+     */
+    private fun observeFavoritesBottomSheetState() {
+        viewModel.favoritesBottomSheetState.observe(viewLifecycleOwner) { state ->
+            bottomSheetBehaviorFavorites.state = state
+        }
+    }
+
+    /*
+       Настройка нижнего листа избранного.
+    */
+    private fun setBottomSheetFavorites() {
+        binding.apply {
+            favoritesBottomSheet.recyclerViewFavorites.adapter = favoritesAdapter
+            recyclerView.adapter = searchAdapter
+            _bottomSheetBehaviorFavorites = BottomSheetBehavior.from(favoritesBottomSheet.root)
+        }
+    }
+
+    /*
+        Подписка на результат геолокации.
+     */
+    private fun observeGpsValues() {
+        gpsViewModel.gpsData.observe(viewLifecycleOwner) { event ->
+            when (event) {
+                is GpsEvent.CurrentLocation -> {
+                    setGpsMenuIconDisabled()
+                    if (event.address == null)
+                        Toast.makeText(
+                            requireContext(),
+                            getString(R.string.failed_to_get_location),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    else
+                        setGpsResult(event.address)
+                }
+                is GpsEvent.State -> {
+                    setGpsMenuIconDisabled()
+                    if (!event.isEnabled) showTurnOnGpsDialog()
+                }
+                is GpsEvent.Fault -> {
+                    setGpsMenuIconDisabled()
+                    Toast.makeText(requireContext(), event.msg, Toast.LENGTH_SHORT)
+                        .show()
+                }
+            }
+        }
+    }
+
+    /*
+        Отобразить настройки геолокации.
+     */
     private fun showTurnOnGpsDialog() {
         AlertDialog
             .Builder(requireContext())
@@ -120,74 +220,6 @@ class SearchFragment : Fragment() {
                 startActivity(startSettingActivityIntent)
             }.setNegativeButton(getString(R.string.Cancel), null)
             .show()
-    }
-
-    private fun setBottomSheetFavorites() {
-        binding.apply {
-            favoritesBottomSheet.recyclerViewFavorites.adapter = favoritesAdapter
-            recyclerView.adapter = searchAdapter
-            _bottomSheetBehaviorFavorites = BottomSheetBehavior.from(favoritesBottomSheet.root)
-        }
-    }
-
-    private fun setFavoritesAdapter() {
-        _favoritesAdapter = SearchAdapter(
-            object : LocationItemClickListener {
-                override fun onClickItem(id: Int) =
-                    actionOnItemClick(id)
-
-                override fun onClickFavoritesIcon(id: Int) {
-                    viewModel.clickOnFavIconInFavoritesResults(favoritesAdapter.currentList[id])
-                }
-            })
-        observeFavoritesLocations(favoritesAdapter)
-    }
-
-    private fun setSearchAdapter() {
-        _searchAdapter = SearchAdapter(
-            object : LocationItemClickListener {
-                override fun onClickItem(id: Int) =
-                    actionOnItemClick(id)
-
-                override fun onClickFavoritesIcon(id: Int) {
-                    viewModel.clickOnFavIconInSearchResults(searchAdapter.currentList[id])
-                }
-            })
-        observeSearchResults(searchAdapter)
-    }
-
-    /*
-        Подписка на результаты поиска.
-     */
-    private fun observeSearchResults(adapter: SearchAdapter) {
-        viewModel.locations.observe(viewLifecycleOwner) { locations ->
-            adapter.submitList(locations)
-        }
-    }
-
-    /*
-       Подписка на избранные локации.
-    */
-    private fun observeFavoritesLocations(adapter: SearchAdapter) {
-        viewModel.favoritesLocation.observe(viewLifecycleOwner) { favorites ->
-            adapter.submitList(favorites)
-        }
-    }
-
-    /*
-        Подписка на состояние поиска.
-     */
-    private fun observeStateOfLoading() {
-        viewModel.loadState.observe(viewLifecycleOwner) { state ->
-            when (state) {
-                is LoadState.Loading -> binding.progress.isVisible = true
-                is LoadState.Success -> binding.progress.isVisible = false
-                is LoadState.Error -> {
-                    binding.progress.isVisible = false
-                    Toast.makeText(requireContext(), state.msg, Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
     }
 
     /*
@@ -210,6 +242,7 @@ class SearchFragment : Fragment() {
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.menu_fragment_search, menu)
+        super.onCreateOptionsMenu(menu, inflater)
         _searchMenuItem = menu.findItem(R.id.action_search)
         _gpsMenuItem = menu.findItem(R.id.action_get_gps_location)
         prepareSearchView(menuItemSearch)
@@ -223,7 +256,6 @@ class SearchFragment : Fragment() {
                 searchItem.expandActionView()
                 it.setQuery(pendingQuery, false)
             }
-
             it.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
                 override fun onQueryTextSubmit(query: String?): Boolean {
                     if (query != null) {
@@ -290,16 +322,18 @@ class SearchFragment : Fragment() {
     }
 
     private fun getCurrentLocation() {
-        setIconGpsIsTurnedOn()
+        setGpsMenuIconEnabled()
         gpsViewModel.getCurrentLocation()
     }
 
-    private fun setIconGpsIsTurnedOn() {
-        menuItemGps.setIcon(R.drawable.ic_gps_fixed)
+    private fun setGpsMenuIconEnabled() {
+        if (_gpsMenuItem != null)
+            menuItemGps.setIcon(R.drawable.ic_gps_fixed)
     }
 
-    private fun setIconGpsIsTurnedOff() {
-        menuItemGps.setIcon(R.drawable.ic_gps)
+    private fun setGpsMenuIconDisabled() {
+        if (_gpsMenuItem != null)
+            menuItemGps.setIcon(R.drawable.ic_gps)
     }
 
     private fun setGpsResult(addresses: Address) {
