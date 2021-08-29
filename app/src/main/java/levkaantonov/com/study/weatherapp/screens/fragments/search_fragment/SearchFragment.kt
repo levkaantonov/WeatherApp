@@ -58,17 +58,17 @@ class SearchFragment : Fragment() {
     private val menuItemGps get() = checkNotNull(_gpsMenuItem)
     //endregion
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        permissionRequest = buildPermissionRequest()
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
         _binding = FragmentSearchBinding.inflate(layoutInflater, container, false)
         return binding.root
-    }
-
-    override fun onAttach(context: Context) {
-        super.onAttach(context)
-        permissionRequest = buildPermissionRequest()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
