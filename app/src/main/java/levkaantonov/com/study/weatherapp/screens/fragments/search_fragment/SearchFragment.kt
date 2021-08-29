@@ -1,6 +1,5 @@
 package levkaantonov.com.study.weatherapp.screens.fragments.search_fragment
 
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -79,7 +78,8 @@ class SearchFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        viewModel.setFavoritesBottomSheetState(bottomSheetBehaviorFavorites.state)
+        if (_bottomSheetBehaviorFavorites != null)
+            viewModel.setFavoritesBottomSheetState(bottomSheetBehaviorFavorites.state)
     }
 
     /*
@@ -122,7 +122,7 @@ class SearchFragment : Fragment() {
                 }
                 is Resource.Error -> {
                     binding.progress.isVisible = false
-                    Toast.makeText(requireContext(), locations.msg, Toast.LENGTH_SHORT).show()
+                    showToast(locations.msg)
                 }
             }
         }
@@ -155,7 +155,6 @@ class SearchFragment : Fragment() {
         }
     }
 
-
     /*
         Подписка на состояние bottomSheetFavorites.
      */
@@ -181,26 +180,25 @@ class SearchFragment : Fragment() {
      */
     private fun observeGpsValues() {
         gpsViewModel.gpsData.observe(viewLifecycleOwner) { event ->
+            if (event.isHandled) {
+                return@observe
+            }
+            val content = event.getContentIfHandled()
             when (event) {
                 is GpsEvent.CurrentLocation -> {
                     setGpsMenuIconDisabled()
-                    if (event.address == null)
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.failed_to_get_location),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    if (content == null)
+                        showToast(getString(R.string.failed_to_get_location))
                     else
-                        setGpsResult(event.address)
+                        setGpsResult(content as Address)
                 }
                 is GpsEvent.State -> {
+                    if (!(content as Boolean)) showTurnOnGpsDialog()
                     setGpsMenuIconDisabled()
-                    if (!event.isEnabled) showTurnOnGpsDialog()
                 }
                 is GpsEvent.Fault -> {
                     setGpsMenuIconDisabled()
-                    Toast.makeText(requireContext(), event.msg, Toast.LENGTH_SHORT)
-                        .show()
+                    showToast(content as String)
                 }
             }
         }
@@ -226,18 +224,9 @@ class SearchFragment : Fragment() {
         Клик по пункту списка, навигация на фрагмент с расширенной информацией.
      */
     private fun actionOnItemClick(woeId: Int) {
+        viewModel.setFavoritesBottomSheetState(bottomSheetBehaviorFavorites.state)
         val action = SearchFragmentDirections.actionSearchFragmentToDetailsFragment(woeId)
         findNavController().navigate(action)
-    }
-
-    private fun showFavorites() {
-        bottomSheetBehaviorFavorites.apply {
-            state =
-                if (state == BottomSheetBehavior.STATE_EXPANDED)
-                    BottomSheetBehavior.STATE_COLLAPSED
-                else
-                    BottomSheetBehavior.STATE_EXPANDED
-        }
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
@@ -288,6 +277,16 @@ class SearchFragment : Fragment() {
         }
     }
 
+    private fun showFavorites() {
+        bottomSheetBehaviorFavorites.apply {
+            state =
+                if (state == BottomSheetBehavior.STATE_EXPANDED)
+                    BottomSheetBehavior.STATE_COLLAPSED
+                else
+                    BottomSheetBehavior.STATE_EXPANDED
+        }
+    }
+
     private fun getLocation() {
         permissionRequest?.requestPermissions(
             arrayOf(PERMISSION_FINE_LOCATION, PERMISSION_COARSE_LOCATION)
@@ -313,11 +312,7 @@ class SearchFragment : Fragment() {
         if (countOfGrantedPermissions == permissions.size) {
             getCurrentLocation()
         } else {
-            Toast.makeText(
-                requireContext(),
-                getString(R.string.permissions_not_granted),
-                Toast.LENGTH_SHORT
-            ).show()
+            showToast(getString(R.string.permissions_not_granted))
         }
     }
 
@@ -341,6 +336,14 @@ class SearchFragment : Fragment() {
             menuItemSearch.expandActionView()
             it.setQuery(addresses.locality?.lowercase(), false)
         }
+    }
+
+    private fun showToast(str: String?) {
+        Toast.makeText(
+            requireContext(),
+            str,
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
     override fun onDestroyView() {

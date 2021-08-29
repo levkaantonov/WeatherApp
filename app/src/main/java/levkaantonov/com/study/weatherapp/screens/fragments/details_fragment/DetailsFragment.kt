@@ -40,7 +40,8 @@ class DetailsFragment : Fragment() {
         val adapter = DetailsAdapter()
         binding.recyclerView.adapter = adapter
         observeWeather(adapter)
-        viewModel.getWeather(arguments.woeid)
+        if (viewModel.weather.value == null)
+            viewModel.getWeather(arguments.woeid)
     }
 
     /*

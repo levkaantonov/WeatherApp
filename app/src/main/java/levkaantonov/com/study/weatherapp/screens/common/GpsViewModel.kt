@@ -19,8 +19,8 @@ class GpsViewModel @Inject constructor(
     private var gpsGetStateJob: Job = Job()
     private var gpsGetLocationJob: Job = Job()
 
-    private val _gpsData = MutableLiveData<GpsEvent>()
-    val gpsData: LiveData<GpsEvent> = _gpsData
+    private val _gpsData = MutableLiveData<GpsEvent<*>>()
+    val gpsData: LiveData<GpsEvent<*>> = _gpsData
 
     fun getCurrentLocation() {
         getStateOfGps { getLocation() }
