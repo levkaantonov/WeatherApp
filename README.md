@@ -7,7 +7,7 @@
 API:
 https://www.metaweather.com/
 
-MVVM, Kotlin, Hilt, Retrofit, Room, Coroutine, Google location services
+MVVM, Kotlin, Hilt, Retrofit, Room, Coroutines, Google location services
 
 
 
