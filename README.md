@@ -7,9 +7,7 @@
 API:
 https://www.metaweather.com/
 
-Технологии:
-Kotlin, Hilt, Retrofit, Room, Coroutine.
+MVVM, Kotlin, Hilt, Retrofit, Room, Coroutine, Google location services
 
-Архитектура: 
-MVVM
+
 
