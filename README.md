@@ -1,14 +1,13 @@
 # WeatherApp
 
-Изучение Android.
+Разработка под Android.
 
 Простое приложение погоды.
 
-Сервис:
-https://www.metaweather.com/api/
+API:
+https://www.metaweather.com/
 
-Технологии:
-Kotlin, Hilt, Retrofit, Room, Coroutine.
+MVVM, Kotlin, Hilt, Retrofit, Room, Coroutines, Google location services
 
-Архитектура: 
-MVVM
+
+
